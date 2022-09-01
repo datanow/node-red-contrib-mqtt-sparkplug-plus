@@ -1,3 +1,8 @@
+### 1.4.0: Maintenance Release
+
+Fixed:
+- The Store Forward Queue will now be written and restored correctly from the Node Red persistant storage system 
+
 ### 1.3.1: Maintenance Release
 
  New:
