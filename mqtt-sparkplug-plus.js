@@ -286,7 +286,7 @@ module.exports = function(RED) {
                             // and we need NBIRTH to be seq 0
                         }
                         else if (!this.birthMessageSend) {    // Send DBIRTH
-                            this.trySendBirth(done);
+                            this.trySendBirth(done); 
                         }else if (_metrics.length > 0) { // SEND DDATA
                             let dMsg = this.brokerConn.createMsg(this.name, "DDATA", _metrics, f => {});
                             if (dMsg) {
@@ -373,6 +373,18 @@ module.exports = function(RED) {
         if (!this.queue){
             this.queue = [];
             this.context().set("queue", this.queue);
+        }
+
+        // If there are items in the queue that have been loaded from context, make sure the payloads are correct
+        // when the message queue is serialised to JSON, the payload is stored as a type and data fields
+        // when deserialising we need to manually set the payload to the correct type
+        for (let i = 0; i < this.queue.length; i++) {
+
+            let item = this.queue[i];
+            if (item.payload.type) {
+                this.queue[i].payload = Buffer.from(item.payload.data)
+            }
+
         }
 
         /**
@@ -912,7 +924,9 @@ module.exports = function(RED) {
          * @param {boolean} bypassQueue 
          */
         this.publish = function (msg, bypassQueue, done) {
-
+            
+			console.log("Queue Size: "+ node.queue.length);
+					
             if (node.connected && (!node.enableStoreForward || (node.primaryScadaStatus === "ONLINE" && node.queue.length === 0) || bypassQueue)) {
                 if (msg.payload === null || msg.payload === undefined) {
                     msg.payload = "";
@@ -935,11 +949,13 @@ module.exports = function(RED) {
             } else {
                 if (node.queue.length === node.maxQueueSize) {
                     node.queue.shift();
-                    //console.log("Queue Size", node.queue.length);
+																   
                 }else if (node.queue.length  === node.maxQueueSize-1) {
                     node.warn(RED._("mqtt-sparkplug-plus.errors.buffer-full"));
                 }
                 node.queue.push(msg);
+
+                this.context().set("queue", this.queue);
                 done && done();
             }
         };
